@@ -98,7 +98,7 @@ namespace rmw_fastrtps_cpp
     {
         public:
 
-            bool serializeROSmessage(const void *ros_message, eprosima::fastcdr::FastBuffer *data);
+            bool serializeROSmessage(const void *ros_message, eprosima::fastcdr::Cdr& ser);
 
             bool deserializeROSmessage(eprosima::fastcdr::FastBuffer *data, void *ros_message);
 
@@ -120,15 +120,11 @@ namespace rmw_fastrtps_cpp
 
             const MembersType *members_;
 
-            bool typeTooLarge_;
-
         private:
 
             bool serializeROSmessage(eprosima::fastcdr::Cdr &ser, const MembersType *members, const void *ros_message);
 
             bool deserializeROSmessage(eprosima::fastcdr::Cdr &deser, const MembersType *members, void *ros_message, bool call_new);
-
-            bool typeByDefaultLarge() { return typeTooLarge_; }
     };
 }
 

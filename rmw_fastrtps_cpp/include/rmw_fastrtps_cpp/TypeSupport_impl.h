@@ -51,7 +51,7 @@ SPECIALIZE_GENERIC_C_ARRAY(uint64, uint64_t)
 
 
 template <typename MembersType>
-TypeSupport<MembersType>::TypeSupport() : typeTooLarge_(false)
+TypeSupport<MembersType>::TypeSupport()
 {
     m_isGetKeyDefined = false;
 }
@@ -765,7 +765,7 @@ size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
             {
                 current_alignment += 4 + eprosima::fastcdr::Cdr::alignment(current_alignment, 4);
 
-                if(array_size == 0) typeByDefaultLarge() ? array_size = 30 : array_size = 101;
+                if(array_size == 0) array_size = 101;
             }
 
             switch(member->type_id_)
@@ -816,12 +816,9 @@ size_t TypeSupport<MembersType>::calculateMaxSerializedSize(
 
 template <typename MembersType>
 bool TypeSupport<MembersType>::serializeROSmessage(
-    const void *ros_message, eprosima::fastcdr::FastBuffer *buffer)
+    const void *ros_message, eprosima::fastcdr::Cdr& ser)
 {
-    assert(buffer);
     assert(ros_message);
-
-    eprosima::fastcdr::Cdr ser(*buffer);
 
     if(members_->member_count_ != 0)
         TypeSupport::serializeROSmessage(ser, members_, ros_message);
@@ -865,11 +862,16 @@ bool TypeSupport<MembersType>::serialize(
     assert(data);
     assert(payload);
 
-    eprosima::fastcdr::FastBuffer *buffer = static_cast<eprosima::fastcdr::FastBuffer*>(data);
-    payload->length = buffer->getBufferSize();
-    payload->encapsulation = CDR_LE;
-    memcpy(payload->data, buffer->getBuffer(), buffer->getBufferSize());
-    return true;
+    eprosima::fastcdr::Cdr *ser = static_cast<eprosima::fastcdr::Cdr*>(data);
+    if(payload->max_size >= ser->getSerializedDataLength())
+    {
+        payload->length = ser->getSerializedDataLength();
+        payload->encapsulation = CDR_LE;
+        memcpy(payload->data, ser->getBufferPointer(), ser->getSerializedDataLength());
+        return true;
+    }
+
+    return false;
 }
 
 template <typename MembersType>
@@ -889,8 +891,8 @@ std::function<uint32_t()> TypeSupport<MembersType>::getSerializedSizeProvider(vo
 {
     assert(data);
 
-    eprosima::fastcdr::FastBuffer *buffer = static_cast<eprosima::fastcdr::FastBuffer*>(data);
-    return [buffer]() -> uint32_t { return buffer->getBufferSize(); };
+    eprosima::fastcdr::Cdr *ser = static_cast<eprosima::fastcdr::Cdr*>(data);
+    return [ser]() -> uint32_t { return ser->getSerializedDataLength(); };
 }
 
 #endif // _RMW_FASTRTPS_CPP_TYPESUPPORT_IMPL_H_

@@ -263,15 +263,15 @@ _delete_typesupport(void * untyped_typesupport, const char* typesupport_identifi
 
 bool
 _serialize_ros_message(
-    const void *ros_message, eprosima::fastcdr::FastBuffer * buffer, void * untyped_typesupport,
+    const void *ros_message, eprosima::fastcdr::Cdr& ser, void * untyped_typesupport,
     const char* typesupport_identifier)
 {
     if (using_introspection_c_typesupport(typesupport_identifier)) {
         auto typed_typesupport = static_cast<MessageTypeSupport_c *>(untyped_typesupport);
-        return typed_typesupport->serializeROSmessage(ros_message, buffer);
+        return typed_typesupport->serializeROSmessage(ros_message, ser);
     } else if (using_introspection_cpp_typesupport(typesupport_identifier)) {
         auto typed_typesupport = static_cast<MessageTypeSupport_cpp *>(untyped_typesupport);
-        return typed_typesupport->serializeROSmessage(ros_message, buffer);
+        return typed_typesupport->serializeROSmessage(ros_message, ser);
     }
     RMW_SET_ERROR_MSG("Unknown typesupport identifier");
     return false;
@@ -578,7 +578,7 @@ extern "C"
             return NULL;
         }
 
-        eprosima::Log::setVerbosity(eprosima::VERB_ERROR);
+        eprosima::fastrtps::Log::SetVerbosity(eprosima::fastrtps::Log::Error);
 
         ParticipantAttributes participantParam;
         participantParam.rtps.builtin.domainId = static_cast<uint32_t>(domain_id);
@@ -737,7 +737,7 @@ extern "C"
 
         // 300000 bytes each 10ms
         ThroughputControllerDescriptor throughputController{3000000, 10};
-        publisherParam.terminalThroughputController = throughputController;
+        publisherParam.throughputController = throughputController;
 
         if(!get_datawriter_qos(*qos_policies, publisherParam))
             goto fail;
@@ -843,10 +843,11 @@ fail:
         assert(info);
 
         eprosima::fastcdr::FastBuffer buffer;
+        eprosima::fastcdr::Cdr ser(buffer);
 
-        if(_serialize_ros_message(ros_message, &buffer, info->type_support_, info->typesupport_identifier_))
+        if(_serialize_ros_message(ros_message, ser, info->type_support_, info->typesupport_identifier_))
         {
-            if(info->publisher_->write(&buffer))
+            if(info->publisher_->write(&ser))
                 returnedValue = RMW_RET_OK;
             else
                 RMW_SET_ERROR_MSG("cannot publish data");
@@ -1618,12 +1619,13 @@ fail:
         assert(info);
 
         eprosima::fastcdr::FastBuffer buffer;
+        eprosima::fastcdr::Cdr ser(buffer);
 
-        if(_serialize_ros_message(ros_request, &buffer, info->request_type_support_, info->typesupport_identifier_))
+        if(_serialize_ros_message(ros_request, ser, info->request_type_support_, info->typesupport_identifier_))
         {
             eprosima::fastrtps::rtps::WriteParams wparams;
 
-            if(info->request_publisher_->write(&buffer, wparams))
+            if(info->request_publisher_->write(&ser, wparams))
             {
                 returnedValue = RMW_RET_OK;
                 *sequence_id = ((int64_t)wparams.sample_identity().sequence_number().high) << 32 | wparams.sample_identity().sequence_number().low;
@@ -1733,14 +1735,15 @@ fail:
         assert(info);
 
         eprosima::fastcdr::FastBuffer buffer;
+        eprosima::fastcdr::Cdr ser(buffer);
 
-        _serialize_ros_message(ros_response, &buffer, info->response_type_support_, info->typesupport_identifier_);
+        _serialize_ros_message(ros_response, ser, info->response_type_support_, info->typesupport_identifier_);
         eprosima::fastrtps::rtps::WriteParams wparams;
         memcpy(&wparams.related_sample_identity().writer_guid(), request_header->writer_guid, sizeof(eprosima::fastrtps::rtps::GUID_t));
         wparams.related_sample_identity().sequence_number().high = (int32_t)((request_header->sequence_number & 0xFFFFFFFF00000000) >> 32);
         wparams.related_sample_identity().sequence_number().low = (int32_t)(request_header->sequence_number & 0xFFFFFFFF);
 
-        if(info->response_publisher_->write(&buffer, wparams))
+        if(info->response_publisher_->write(&ser, wparams))
         {
             returnedValue = RMW_RET_OK;
         }

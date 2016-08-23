@@ -35,10 +35,6 @@ RequestTypeSupport<ServiceMembersType, MessageMembersType>::RequestTypeSupport(c
     assert(members);
     this->members_ = members->request_members_;
 
-    if(strcmp(members->package_name_, "rcl_interfaces") == 0 && (strcmp(members->service_name_, "SetParameters") == 0 ||
-            strcmp(members->service_name_, "SetParametersAtomically") == 0))
-        this->typeTooLarge_ = true;
-
     std::string name = std::string(members->package_name_) + "::srv::dds_::" + members->service_name_ + "_Request_";
     this->setName(name.c_str());
 
