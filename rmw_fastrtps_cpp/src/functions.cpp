@@ -732,12 +732,12 @@ extern "C"
         publisherParam.historyMemoryPolicy = PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
         // 1 Heartbeat every 10ms
-        publisherParam.times.heartbeatPeriod.seconds = 0;
-        publisherParam.times.heartbeatPeriod.fraction = 42949673;
+        //publisherParam.times.heartbeatPeriod.seconds = 0;
+        //publisherParam.times.heartbeatPeriod.fraction = 42949673;
 
         // 300000 bytes each 10ms
-        ThroughputControllerDescriptor throughputController{3000000, 10};
-        publisherParam.throughputController = throughputController;
+        //ThroughputControllerDescriptor throughputController{3000000, 10};
+        //publisherParam.throughputController = throughputController;
 
         if(!get_datawriter_qos(*qos_policies, publisherParam))
             goto fail;
@@ -994,11 +994,6 @@ fail:
         subscriberParam.topic.topicDataType = type_name;
         subscriberParam.topic.topicName = topic_name;
         subscriberParam.historyMemoryPolicy = PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
-
-        Locator_t multicast_locator;
-        multicast_locator.set_IP4_address("239.255.0.1");
-        multicast_locator.port = 7600;
-        subscriberParam.multicastLocatorList.push_back(multicast_locator);
 
         if(!get_datareader_qos(*qos_policies, subscriberParam))
             goto fail;
